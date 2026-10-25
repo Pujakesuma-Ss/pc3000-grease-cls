@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#202a35">
+<title>PC3000-6E | Jadwal Grease CLS</title>
+<style>
+:root{--bg:#f3f5f7;--ink:#1e2933;--muted:#667482;--yellow:#f4c430;--line:#dce2e7;--green:#18794e;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{background:#202a35;color:white;padding:22px 16px 20px;border-bottom:5px solid var(--yellow)}header h1{font-size:22px;margin:0 0 5px}header p{margin:0;color:#d6dde3;font-size:13px}
+main{max-width:1000px;margin:auto;padding:16px}.note{background:#fff8db;border:1px solid #f0d66d;border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}.tile{background:white;border:1px solid var(--line);border-radius:12px;padding:12px}.tile small{display:block;color:var(--muted);font-size:12px}.tile strong{font-size:22px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn{border:0;border-radius:9px;padding:10px 13px;font-weight:650;background:#202a35;color:white;cursor:pointer}.btn.yellow{background:var(--yellow);color:#222}.btn.light{background:white;color:#222;border:1px solid var(--line)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.unit{background:white;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 8px #17212b0a}.unithead{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.unithead h2{font-size:18px;margin:0}.pill{background:#e5f5ec;color:var(--green);padding:4px 8px;border-radius:99px;font-size:11px;font-weight:700}.fieldgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}.field input{width:100%;padding:9px;border:1px solid #cbd5df;border-radius:8px;font:inherit;background:#fff}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.metric{background:#f5f7f9;border-radius:9px;padding:9px}.metric small{display:block;color:var(--muted);font-size:11px}.metric strong{font-size:17px}.due{margin-top:10px;padding:10px;border-radius:9px;background:#fff8db;border:1px solid #f0d66d}.due b{font-size:17px}.due small{display:block;color:#6b5a16}.foot{color:var(--muted);font-size:12px;margin:18px 0 6px}
+@media(max-width:430px){.summary{grid-template-columns:1fr 1fr}.summary .tile:last-child{grid-column:span 2}header h1{font-size:20px}}
+@media print{header{background:#fff;color:#111;border-bottom:2px solid #111}header p{color:#333}body{background:white}.toolbar{display:none}.unit{break-inside:avoid;box-shadow:none}.note{background:white}}
+</style>
+</head>
+<body>
+<header><h1>PC3000-6E — Jadwal Pengisian Grease CLS</h1><p>Interval per 100 HM · Hanya CLS yang dihitung · SLS tidak masuk perhitungan</p></header>
+<main>
+<div class="note"><b>Aturan jadwal:</b> jadwal berikutnya dihitung ke kelipatan 100 HM di atas HM terakhir (contoh 38.072,64 → 38.100). Tanggal pengisian berikutnya tidak diprediksi karena laju HM harian belum diberikan. Jumlah kg adalah catatan pengisian untuk mencapai 100%, bukan dasar interval.</div>
+<section class="summary">
+<div class="tile"><small>Jumlah unit</small><strong id="units">7</strong></div>
+<div class="tile"><small>Unit terdekat jadwal</small><strong id="nearest">—</strong></div>
+<div class="tile"><small>CLS perlu dipantau</small><strong id="watch">—</strong></div>
+</section>
+<div class="toolbar">
+<button class="btn yellow" onclick="saveData()">Simpan data di HP</button>
+<button class="btn" onclick="exportCSV()">Ekspor CSV</button>
+<button class="btn light" onclick="shareText()">Buat teks / WhatsApp</button>
+<button class="btn light" onclick="window.print()">Cetak</button>
+<button class="btn light" onclick="resetData()">Reset data awal</button>
+</div>
+<div id="cards" class="cards"></div>
+<p class="foot">Data tersimpan di browser perangkat ini setelah tombol “Simpan data di HP” ditekan. Jika browser/data situs dibersihkan, simpan atau ekspor data terlebih dahulu. Untuk SE3007, HM yang dikirim tertulis “311325”; aplikasi memakai 31.325 sebagai dugaan koreksi agar konsisten dengan riwayat HM sebelumnya. Silakan verifikasi dan edit HM bila berbeda.</p>
+</main>
+<script>
+const initial=[
+ {unit:"SE3001",hm:38072.64,date:"2026-10-17",kg:10,cls:100},
+ {unit:"SE3002",hm:39931.7,date:"2026-10-23",kg:170,cls:100},
+ {unit:"SE3003",hm:39261.6,date:"2026-10-22",kg:60,cls:100},
+ {unit:"SE3004",hm:33911.0,date:"2026-10-25",kg:90,cls:100},
+ {unit:"SE3005",hm:32794.3,date:"2026-10-21",kg:20,cls:100},
+ {unit:"SE3006",hm:31228.7,date:"2026-10-25",kg:120,cls:100},
+ {unit:"SE3007",hm:31325,date:"2026-10-24",kg:80,cls:100}
+];
+let data=JSON.parse(JSON.stringify(initial));
+const fmt=n=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:2});
+function nextDue(hm){return Math.floor(Number(hm)/100+1)*100}
+function render(){
+ document.getElementById('units').textContent=data.length;
+ let sorted=data.map(d=>({...d,due:nextDue(d.hm),remaining:nextDue(d.hm)-Number(d.hm)})).sort((a,b)=>a.remaining-b.remaining);
+ document.getElementById('nearest').textContent=sorted[0]?.unit||'—';
+ document.getElementById('watch').textContent=sorted.filter(d=>d.remaining<=25).length+' unit';
+ document.getElementById('cards').innerHTML=data.map((d,i)=>`<article class="unit">
+ <div class="unithead"><h2>${d.unit}</h2><span class="pill">CLS · ${d.cls}%</span></div>
+ <div class="fieldgrid">
+ <div class="field"><label>HM terakhir</label><input type="number" step="0.1" value="${d.hm}" onchange="update(${i},'hm',this.value)"></div>
+ <div class="field"><label>Tanggal pengisian</label><input type="date" value="${d.date}" onchange="update(${i},'date',this.value)"></div>
+ <div class="field"><label>Grease CLS ditambahkan (kg)</label><input type="number" min="0" step="1" value="${d.kg}" onchange="update(${i},'kg',this.value)"></div>
+ <div class="field"><label>CLS setelah pengisian (%)</label><input type="number" min="0" max="100" value="${d.cls}" onchange="update(${i},'cls',this.value)"></div>
+ </div>
+ <div class="metrics"><div class="metric"><small>HM jadwal berikutnya</small><strong>${fmt(nextDue(d.hm))}</strong></div><div class="metric"><small>Sisa HM ke jadwal</small><strong>${fmt(nextDue(d.hm)-Number(d.hm))} HM</strong></div></div>
+ <div class="due"><small>Jadwalkan pengisian CLS saat HM mencapai</small><b>${fmt(nextDue(d.hm))} HM</b></div>
+ </article>`).join('');
+}
+function update(i,k,v){data[i][k]=k==='date'?v:Number(v);render()}
+function saveData(){try{localStorage.setItem('pc3000_cls_schedule_v1',JSON.stringify(data));alert('Data tersimpan di browser HP ini.')}catch(e){alert('Browser tidak mengizinkan penyimpanan lokal. Gunakan Ekspor CSV.')} }
+function resetData(){if(confirm('Kembalikan ke data awal yang dimasukkan?')){data=JSON.parse(JSON.stringify(initial));render()}}
+function exportCSV(){let rows=[['Unit','HM terakhir','Tanggal pengisian','CLS grease kg','CLS %','HM jadwal berikutnya','Sisa HM']];data.forEach(d=>rows.push([d.unit,d.hm,d.date,d.kg,d.cls,nextDue(d.hm),+(nextDue(d.hm)-d.hm).toFixed(2)]));let csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));a.download='jadwal_grease_CLS_PC3000.csv';a.click();URL.revokeObjectURL(a.href)}
+function shareText(){let s='JADWAL GREASE CLS PC3000-6E\\nInterval: setiap 100 HM\\n\\n'+data.map(d=>`${d.unit} | HM terakhir ${fmt(d.hm)} | CLS ${d.cls}% | Grease terakhir ${d.kg} kg (${d.date}) | Jadwal berikutnya ${fmt(nextDue(d.hm))} HM | Sisa ${fmt(nextDue(d.hm)-d.hm)} HM`).join('\\n')+'\\n\\nSLS tidak dihitung.';if(navigator.share)navigator.share({title:'Jadwal Grease CLS PC3000-6E',text:s}).catch(()=>copyFallback(s));else copyFallback(s)}
+function copyFallback(s){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>alert('Teks jadwal disalin. Silakan tempel ke WhatsApp.')).catch(()=>prompt('Salin teks ini:',s))}else prompt('Salin teks ini:',s)}
+try{const saved=localStorage.getItem('pc3000_cls_schedule_v1');if(saved)data=JSON.parse(saved)}catch(e){}
+render();
+</script>
+</body></html>
